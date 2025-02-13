@@ -8,5 +8,12 @@
 
   <body>
     <h1>Query</h1>
+
+    <?php
+    include($_SERVER['DOCUMENT_ROOT'] . "/../include/osa12/a3dbconnect.php");
+
+    ?>
     
+
+
 <!-- end of header -->
