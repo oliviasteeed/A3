@@ -3,7 +3,10 @@
 <html lang="en">
   <head>
     <title>Assignment 3: Integrating DB with PHP</title>
-    <!-- <link rel="stylesheet" href="a1-style.css"> -->
+    <style>
+        table { border-collapse: collapse; }
+        td, th { padding: 10px; border: 1px solid #ddd; }
+    </style>
   </head>
 
   <body>

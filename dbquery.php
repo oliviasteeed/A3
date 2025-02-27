@@ -29,24 +29,6 @@ while ($row = $order_numbers_result->fetch_array()) {   //put order numbers in a
 
 // CHECK USER INPUT //
 
-// if(isset($_POST['order_number']) && !empty($_POST['order_number']) && $_POST['order_number'] != "Select"){    //if order number is set (user has interacted with)
-
-// // if tried to set both order number and order date, throw error
-// if(($_POST['order_number'] != "Select") && ((isset($_POST['date_to']) && !empty($_POST['date_to'])) || isset($_POST['date_from']) && !empty($_POST['date_from']))){
-//     echo "<h2>Please only search by order number OR order date range.</h2>";
-//     // exit();
-// }
-
-// // if trying to use order date (not order number) and they didn't input date_from AND date_to throw error
-// if(($_POST['order_number'] == "Select") && ((isset($_POST['order_number']) && empty($_POST['order_number'])) || isset($_POST['date_from']) && empty($_POST['date_from']))){
-//     echo "<h2>To search by order date, please enter a complete date range including a start and end date.</h2>";
-//     // exit();
-// }
-
-// }
-
-
-
 //get user input as variables
 if(isset($_POST['order_number']) && !empty($_POST['order_number'])) $order_number = trim($_POST['order_number']); 
 if(isset($_POST['date_from']) && !empty($_POST['date_from'])) $date_from = trim($_POST['date_from']); 
@@ -55,7 +37,7 @@ if(isset($_POST['columns_selected']) && !empty($_POST['columns_selected'])) $col
 
 
 // get columns selected to query from form POST method
-$query_columns = "*";   //default is all columns
+$query_columns = "";   //default is all columns
 if(isset($_POST['columns_selected']) && !empty($_POST['columns_selected'])){
     $query_columns = "";
     $i = 0;
@@ -68,13 +50,9 @@ if(isset($_POST['columns_selected']) && !empty($_POST['columns_selected'])){
             $query_columns = $query_columns.$c.", ";
         }
     }
+}else{
+    $query_columns = "";   //empty string
 }
-
-// echo $query_columns;
-
-
-
-
 
 
 // GENERATE SQL QUERY
@@ -89,25 +67,26 @@ if((isset($_POST['order_number']) && !empty($_POST['order_number']) && $_POST['o
     if(($_POST['order_number'] != "Select") && ((!empty($_POST['date_to'])) || !empty($_POST['date_from']))){
         echo "<p>Please only search by order number <strong>OR</strong> order date range.</p>";
         }
+        
+    //if no columns to query, do not query db
+    else if($query_columns == ""){
+        echo "<p>Please <strong>select columns to query</strong>.</p>";
+    }
 
     // if using order number
     elseif(isset($_POST['order_number']) && !empty($_POST['order_number']) && $_POST['order_number'] != "Select"){
 
         if (str_contains($query_columns, 'products') && str_contains($query_columns, 'orderdetails')){  //join orders, orderdetails, products
             $dbquery = "SELECT $query_columns FROM orders JOIN orderdetails ON orders.orderNumber = orderdetails.orderNumber JOIN products ON orderdetails.productCode = products.productCode WHERE orders.orderNumber = $order_number;";
-            echo "contains products and order details";
         }
         elseif (str_contains($query_columns, 'products')){ //join orders and products
             $dbquery = "SELECT $query_columns FROM orders JOIN orderdetails ON orders.orderNumber = orderdetails.orderNumber JOIN products ON orderdetails.productCode = products.productCode WHERE orders.orderNumber = $order_number;";
-            echo "contains products";
         }
         elseif(str_contains($query_columns, 'orderdetails')){   //join orders and orderdetails
             $dbquery = "SELECT $query_columns FROM orders JOIN orderdetails ON orders.orderNumber = orderdetails.orderNumber;";
-            echo "contains order details";
         }
         else{ //no join needed, only accessing orders
             $dbquery = "SELECT $query_columns FROM orders WHERE orders.orderNumber = $order_number;";
-            echo "contains orders only";
         }
     }
 
@@ -118,19 +97,15 @@ if((isset($_POST['order_number']) && !empty($_POST['order_number']) && $_POST['o
         if (valiDate($date_from) && valiDate($date_to)) {
             if (str_contains($query_columns, 'products') && str_contains($query_columns, 'orderdetails')){  //join orders, orderdetails, products
                 $dbquery = "SELECT $query_columns FROM orders JOIN orderdetails ON orders.orderNumber = orderdetails.orderNumber JOIN products ON orderdetails.productCode = products.productCode WHERE orders.orderDate > '$date_from' AND orders.orderDate < '$date_to';";
-                // echo "contains products and order details";
             }
             elseif (str_contains($query_columns, 'products')){ //join orders and products
                 $dbquery = "SELECT $query_columns FROM orders JOIN orderdetails ON orders.orderNumber = orderdetails.orderNumber JOIN products ON orderdetails.productCode = products.productCode WHERE orders.orderDate > '$date_from' AND orders.orderDate < '$date_to';";
-                // echo "contains products";
             }
             elseif(str_contains($query_columns, 'orderdetails')){   //join orders and orderdetails
                 $dbquery = "SELECT $query_columns FROM orders JOIN orderdetails ON orders.orderNumber = orderdetails.orderNumber WHERE orders.orderDate > '$date_from' AND orders.orderDate < '$date_to';";
-                // echo "contains order details";
             }
             else{ //no join needed, only accessing orders
                 $dbquery = "SELECT $query_columns FROM orders WHERE orders.orderDate > '$date_from' AND orders.orderDate < '$date_to';";
-                // echo "contains orders only";
             }
         } 
         else {
@@ -144,7 +119,8 @@ else{
     if((isset($_POST['date_from']) && empty($_POST['date_from'])) || (isset($_POST['date_to']) && empty($_POST['date_to']))){
         echo "<p>To search by order date, please enter a <strong>complete date range including a start and end date.</strong></p>";
     }
-    else{
+
+    else{   //also catches if they didn't select any columns
         echo "<p>Please <strong>input values to query data.</strong></p>";
     }
 }
@@ -155,9 +131,6 @@ else{
 
 $column_labels_array = ["Order Number", "Order Date", "Shipped Date", "Product Name", "Product Description", "Quantity Ordered", "Price Each"];
 $column_values_array = ["orders.orderNumber", "orders.orderDate", "orders.shippedDate", "products.productName", "products.productDescription", "orderdetails.quantityOrdered", "orderdetails.priceEach"];
-
-// $column_values_assoc_array = array("orderNumber"=>"orders", "orderDate"=>"orders", "shippedDate"=>"orders", "productName"=>"products", "productDescription"=>"products", "quantityOrdered"=>"orderdetails", "priceEach"=>"orderdetails");
-
 
 echo start_form("dbquery.php");
 
@@ -201,14 +174,10 @@ echo "</code>";
 echo "<h1>Result</h1>";
 
 if (isset($dbquery) && !empty($dbquery) && $dbquery != "*" || $dbquery != ""){   //if db query has been input
-    // echo $dbquery;
-    // echo "THERE IS INPUT";
 
     $query_result = $db->query($dbquery);  // actually query the db
 
     echo "<table border=\"1px\"><thead><tr>";
-
-
     
     while ($column_header = $query_result->fetch_field()) {
         echo "<th>".$column_header->name."</th>";
@@ -230,41 +199,14 @@ if (isset($dbquery) && !empty($dbquery) && $dbquery != "*" || $dbquery != ""){  
     };
 
     echo "</tbody></table>";
+
+    //free results and close db connection
+    $query_result->free_result();
+    $db->close();
 }
 else{   // if no input, do not send query
     echo "<p>Select parameters to return data.</p>";
 }
-
-
-// display result
-// while ($row = $query_result->fetch_assoc()) {
-//     echo "<tr>";
-//     foreach ($row as $column_value) {
-//         echo "<td>" . htmlspecialchars($column_value) . "</td>"; // Display each cell value
-//     }
-//     echo "</tr>";
-// }
-
-// while ($row = $query_result->fetch_assoc()) {
-    // foreach ($query_columns as $c){
-    //     echo "<tr>";
-    //     echo "<td>";
-        // echo $row;
-    //     echo "</tr>";
-    // }
-
-
-	// echo "<tr><td>".$row['orderNumber']."</td><td align=\"right\">" .
-	// 	$row['orderDate']."</td></tr>\n";
-// };
-
-
-
-
-
-// while ($row = $order_numbers_result->fetch_array()) {
-// 	array_push($order_numbers_array, $row['orderNumber']);
-// };
 
 
 ?>
